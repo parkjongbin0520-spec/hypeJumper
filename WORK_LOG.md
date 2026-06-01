@@ -4,6 +4,124 @@
 
 ---
 
+## 2026-06-02 (18)
+
+### [Phase 4] 6-5 플레이어 애니메이션 — 상태별 번호 프레임 순환 (3단 폴백)
+
+- **수정 파일**: settings.py, src/assets.py, src/player.py
+- **승인**: 비니 "ㄱㄱ". 렌더 한정(player.draw + assets + settings), 물리 무수정.
+- **변경 내용**:
+  - settings.py: `ANIM_FRAME_DUR=6`(프레임당 게임프레임, ≈10fps 애니).
+  - assets.py: `frame_names(base)` — `base_0,base_1,…` 연속 번호 프레임 존재분 리스트 반환(캐시), 없으면 빈 리스트.
+  - player.py: `_anim_t`(draw마다 증가, 렌더 클럭). `draw`가 `_animated(self._sprite_names())` 사용. `_animated`: 첫 상태 base에 번호 프레임이 있으면 `(_anim_t//ANIM_FRAME_DUR)%N` 현재 프레임을 앞에 끼움, 없으면 bases 그대로. **3단 폴백**: 번호프레임 → 단일 스프라이트(6-2) → 사각형. **물리 수식 무수정**.
+- **검증(자동)**: 프레임0개→bases 불변·frame_names 빈리스트 / 단일 player_idle→애니 없음 / player_run_0~2→frame_names 3개·0→1→2 순환·3에서 0 래핑 / Game 120f 애니 draw 예외0 — **7/7 PASS**. 테스트 스프라이트 삭제.
+- **원본 파일 업데이트 여부**: 없음. (ASSETS.md 6-5. player_<state>_<n>.png 번호 프레임 규칙은 신규 — organize는 player_ 접두사로 이미 처리.)
+- **다음 작업**: 비니가 `player_run_0.png`,`player_run_1.png`… 드롭→organize→자동 애니. **비주얼 기초(6-1~6-5) 완료.** 이후: UI 폴리싱 / 데드존·카메라룩 / 투사체 적(3C-5).
+
+## 2026-06-02 (17)
+
+### [Phase 4] 6-4 패럴럭스 배경 — bg 3레이어 카메라 속도차 스크롤 (폴백: 그라데이션)
+
+- **수정 파일**: settings.py, src/scene.py
+- **승인**: 비니 "6-4 시작하자". 렌더 한정(scene.py + settings).
+- **변경 내용**:
+  - settings.py: `PARALLAX_SKY=0.10`/`PARALLAX_FAR=0.30`/`PARALLAX_NEAR=0.60` (카메라 x의 일부만 스크롤 → 깊이감).
+  - scene.py: `_draw_background`가 기존 그라데이션+반딧불 base 위에 `bg_sky`→`bg_bamboo_far`→`bg_bamboo_near` 순으로 패럴럭스 레이어를 깊이순 렌더. 신규 `_draw_parallax_layer`: 카메라 x×factor만큼 **가로 무한 타일링**(`%w` 래핑), 세로는 바닥 정렬(위 빈 곳은 base 그라데이션이 비침 → 투명 bg와 자연 합성). **bg 스프라이트 없으면 스킵 → 기존과 100% 동일**.
+- **검증(자동)**: (1) bg 0개 → base 그라데이션만(상단=BG_TOP) = 기존 동일 (2) bg_sky 투입 → 상단이 sky색으로 덮임(레이어 렌더) (3) 카메라 x 0 vs 200 → 스트라이프 bg 행이 달라짐(패럴럭스 스크롤) (4) Game 90f 예외0 — **4/4 PASS**. 테스트 bg 삭제.
+- **원본 파일 업데이트 여부**: 없음. (ASSETS.md 6-4 항목, bg 레이어는 design.md 콘셉트.)
+- **다음 작업**: 비니가 `bg_sky.png`/`bg_bamboo_far.png`/`bg_bamboo_near.png`(1920×540 권장, 투명 PNG) 드롭→organize→자동 패럴럭스. 또는 6-5 플레이어 애니메이션. 커밋 대기.
+
+## 2026-06-02 (16)
+
+### [Phase 4] 6-3 사운드 — audio.py(SFX/BGM 로더) + 이벤트 지점 재생, 폴백 무음
+
+- **생성/수정 파일**: src/audio.py(신규), src/player.py, src/entities/{enemy,spring,jump_pad}.py, src/scene.py, main.py
+- **승인**: 구조 평가 보고서 승인(비니 "전체"). 물리 수식 무수정·소리 side-effect만.
+- **변경 내용**:
+  - `audio.py`: `init()`(mixer 초기화, 실패=전체 무음), `play(name)`(=`sfx_<name>` 탐색·캐시·재생, 없으면 무음), `play_music(name)`(=`bgm_<name>` 루프, 같은 곡 중복 무시). 미존재 None 캐시.
+  - player.py: `audio.play` 호출 — jump/walljump/dash + `_flash_tech` 한 곳에서 super/hyper/wallbounce(대시테크·릴리즈 양쪽 커버) + grab/release + **착지(`_prev_on_ground` 엣지)**. **물리 연산 수식 무수정**(소리 1줄 + 접지 엣지 플래그만).
+  - enemy.py `_take_hit`: HP0=enemy_break / 잔존=enemy_hit. spring/jump_pad on_enter: spring/jumppad. scene.py: set_checkpoint=checkpoint, respawn=death, request_advance=goal(1회), `_load_level`에 `play_music("stage1")`. main.py: `audio.init()`.
+- **검증(자동, dummy 오디오)**: init 전 무no-op / mixer init OK / 없는 sfx None캐시·무음 / sfx 투입 시 Sound 로드 / bgm 등록·중복무시 / Game 120f 이벤트사운드 경로 예외0 — **7/7 PASS**. 테스트 음원 삭제.
+- **발견**: 비니가 `assets/sounds/bgm/bgm_stage1.ogg` 실제 배경음 투입 → `play_music("stage1")`이 자동 루프(이번 로더로 바로 동작).
+- **원본 파일 업데이트 여부**: 없음. (사운드는 ASSETS.md 6-3. src/audio.py 신규.)
+- **다음 작업**: 비니가 `sfx_*.wav` 드롭→organize→자동 재생. 또는 6-4 패럴럭스 배경 / 6-5 애니메이션. 커밋 대기.
+
+## 2026-06-01 (15)
+
+### [Phase 4] 6-2 스프라이트 로더 — 중앙 캐시 + 폴백(없으면 사각형), 전 엔티티 배선
+
+- **생성/수정 파일**: src/assets.py(신규), src/player.py, src/scene.py, src/tilemap.py, src/entities/{hazard,spring,jump_pad,platform,ntt,enemy}.py
+- **승인**: 구조 평가 보고서 승인(비니 "전체"). 엔티티+플레이어+타일/발판 타일링 포함.
+- **변경 내용**:
+  - `assets.py`: `get_sprite`(name→Surface|None, 미존재도 캐시), `first_sprite`(이름 리스트 중 첫 존재), `blit_or_rect`(스프라이트 있으면 **발-중앙 정렬 blit**, 없으면 사각형), `tile_fill`(타일 반복+clip, 없으면 사각형). sprites/{player,entities,tiles,bg,ui} 검색. convert_alpha 실패(헤드리스)는 raw 폴백.
+  - 각 draw의 `pygame.draw.rect` → `assets.blit_or_rect`/`tile_fill`로 교체: hazard="spike", spring=방향별("spring_up"/"spring_wall"), jump_pad="jumppad", platform=tile_fill("platform"), ntt="ntt", rope_ntt="rope_ntt"(줄 선은 유지), enemy="enemy"/"enemy_armored"(무적 깜빡임은 빈 names로 사각형 유지), Checkpoint="checkpoint(_on)", Goal="goal", tilemap solids=tile_fill("tile_ground").
+  - player.py: draw 본체만 `blit_or_rect(self._sprite_names()…)`, 신규 `_sprite_names()`(상태별 idle/run/jump/fall/dash/duck 우선순위, 미존재 시 idle→사각형). **물리/충돌/상태 로직 전부 무수정**(렌더 한정).
+- **검증(자동)**: (1) 에셋 0개 → 폴백 사각형 렌더(바닥 COLOR_SOLID·적 COLOR_ENEMY 픽셀 존재) = **기존과 동일** (2) enemy.png(고유색) 투입+캐시클리어 → 적 사각형색 감소·스프라이트색 출현(교체 확인) (3) tile_ground.png → 바닥 타일링·COLOR_SOLID 감소 (4) Game 90f 예외0. **6/6 PASS**. 테스트 스프라이트 삭제(dir엔 .gitkeep만).
+- **원본 파일 업데이트 여부**: 없음. (스프라이트 로더는 ASSETS.md 6-2 항목. src/assets.py 신규.)
+- **다음 작업**: 비니가 ASSETS.md 규칙대로 PNG를 ROOT에 드롭→organize→화면에 자동 표시. 또는 6-3 사운드(`audio.py`), 6-4 패럴럭스, 6-5 애니메이션. 커밋 대기.
+
+## 2026-06-01 (14)
+
+### [Phase 4] 6-1 자산 구조 + 인테이크 워크플로우 + ASSETS.md 박제
+
+- **생성 파일**: assets/sprites/{player,entities,tiles,bg,ui}/.gitkeep, assets/sounds/{sfx,bgm}/.gitkeep, tools/organize_assets.py, ASSETS.md
+- **승인**: 비니 "6-1 단계를 하자 + asset.md 만들어 목록 박제". 인테이크 방식 = 자동 스크립트(B) 채택.
+- **변경 내용**:
+  - 폴더 구조: CLAUDE.md assets/ 구조 + 세분화(sprites/player·entities·tiles·bg·ui, sounds/sfx·bgm). 빈 폴더 git 추적용 .gitkeep.
+  - `tools/organize_assets.py`: ROOT(또는 _inbox/) **최상위만** 스캔(assets/ 정리분 보호) → 파일명 접두사(player_/tile_/bg_/ui_/sfx_/bgm_/map_) + 엔티티 화이트리스트(enemy/ntt/spring_up…)로 분류 이동. `--dry-run` 미리보기. **모르는 파일은 스킵**(map_preview*.png 등 프로젝트 파일 보호). 같은 위치/덮어쓰기 처리.
+  - `ASSETS.md`: 폴더 구조·인테이크 워크플로우·파일명 규칙·스프라이트 목록(히트박스/캔버스/우선순위·상태⬜)·사운드 목록(이벤트/우선/상태)·진행 6-1~6-5. 폴백 원칙(에셋 없으면 사각형/무음) 명시.
+  - **게임 코드 무변경** — 폴더/툴/문서만. main/player/물리 무관.
+- **검증(자동)**: 더미 7개(sfx_/player_/엔티티/bg_/map_ + 모르는 2개) → dry-run==real, 5개 정확 라우팅, random_thing.png·notes.txt·map_preview_visual.png **미이동(보호)** 확인. 더미 정리 후 clean 루트 dry-run 0건. organize_assets import/실행 정상.
+- **원본 파일 업데이트 여부**: 없음. (ASSETS.md 신규 문서, 폴더/툴 신규. CLAUDE.md assets/ 구조와 일치.)
+- **다음 작업**: 비니가 에셋을 규칙대로 ROOT에 드롭 → `python tools/organize_assets.py`로 정리. 또는 6-2(스프라이트 로더 `assets.py` — 있으면 blit/없으면 사각형) 착수. 커밋 여부 대기.
+
+## 2026-06-01 (13)
+
+### [Phase 4] 비주얼 기초 — design.md 팔레트 재매핑 + 비취 야간 그라데이션 배경 + 정적 반딧불
+
+- **수정/생성 파일**: settings.py, src/scene.py, main.py, map_preview_visual.png(육안용)
+- **승인**: 비니 "비주얼 기초로 깔아보자" + 구조 평가 보고서 승인("승인 — 팔레트+배경+반딧불"). design.md "Organic Eco-Hologram"(Bright & Peaceful Bio-Cyberpunk) 방향.
+- **변경 내용**:
+  - settings.py: 팔레트 상수 블록 신설 — JADE/JADE_DEEP/MINT/MILKY/MIST_GRAY/GOLD/CORAL/MAGENTA/VIOLET (design.md Main70/Sub20/Point10). 기존 COLOR_* **값만 팔레트 기반 재매핑**(이름·구조 유지): 플레이어=유백(최대 대비), 바닥=안개비취(어둡게), 발판=민트, 가시/잡기불가=코랄, 체크포인트=짙은비취/활성=황금, 적=주황코랄/강화=자홍, NTT=보라, 골=황금. 배경상수 COLOR_BG_TOP/BOTTOM·COLOR_FIREFLY·FIREFLY_COUNT 추가.
+  - scene.py: `_build_background(size)`(세로 그라데이션 보간 + 고정시드 random으로 반딧불 정적 배치) + `_draw_background`(1회 베이킹 후 blit, `_bg_surface` 캐시). `draw` 맨 앞에서 배경 그림. `__init__`에 `_bg_surface=None`.
+  - main.py: 중복 `screen.fill` 제거 — 배경은 Scene 소유.
+  - **player.py·물리·엔티티 로직 무관**(색/배경 한정).
+- **검증(자동)**: 팔레트 import OK / 그라데이션 베이킹 surface top=BG_TOP·bottom=BG_BOTTOM 정확 / 반딧불 픽셀 존재 / 배경 1회 캐싱(재빌드 없음) / 지형이 배경 위 정상 합성 / Scene 180f + Game 60f 예외0 — **PASS**. (1차 'bottom FAIL' 2건은 샘플 픽셀이 반딧불/바닥지형과 겹친 테스트 아티팩트 — 베이킹 surface 직접 검증으로 정상 확인.) map_preview_visual.png 육안: 비취 야간 그라데이션+반딧불, 캐릭터/위험 대비 양호.
+- **원본 파일 업데이트 여부**: 없음. (비주얼/팔레트는 design.md 방향, 색값 재매핑·배경은 코드/튜닝 범위.)
+- **다음 작업**: 비니 직접 플레이 — `python main.py`로 동화풍 야간 톤·반딧불·가독성 체감. 승인 시 다음(스프라이트 파이프라인 / 파티클·UI / 투사체 적). 커밋 여부 비니 지시 대기.
+
+## 2026-06-01 (12)
+
+### [Phase 4] 카메라 시스템 + 다중 레벨 로드/전환 ("게임에 살 붙이기" 5-1·5-2)
+
+- **수정/생성 파일**: src/camera.py(신규), assets/tilemaps/level1.txt·level2.txt(신규), settings.py, src/tilemap.py, src/scene.py, main.py
+- **승인**: TASK.md "게임에 살 붙이기" 지시 + 구조 평가 보고서 제출. 비니 선택 = **A안(기존 offset 시그니처 유지)** + **5-1·5-2 한 세션**. 제약: player.py 물리 무수정 / 카메라 camera.py 캡슐화·Scene 제어 / 맵 경계 클램프 / pygame만.
+- **변경 내용**:
+  - `camera.py` `Camera`(신규): `offset`(round된 정수 튜플), `update(target_rect, map_w, map_h)`=대상 중심으로 CAMERA_LERP 보간 후 경계 클램프, `snap`=즉시 중앙(로드/리스폰 패닝 방지), `_clamp`=[0, map-view] (맵<화면이면 0). float 내부 보관, draw용 정수 노출.
+  - `settings.py`: Phase 4 섹션 추가 — `CAMERA_LERP=0.12`, `COLOR_GOAL`, `LEVEL_FILES=[level1,level2]` (추가만).
+  - `tilemap.py`: `__init__`에 `goal_rects`·`width`/`height`(맵 픽셀크기) 추가. `load_text`가 그리드 폭·행수로 width/height 계산 + `'G'`(골) 기호 파싱. `_reset_collections`에 goal_rects/크기 리셋.
+  - `scene.py`: `Goal(Trigger)` 신설(Checkpoint와 동형, on_enter→`request_advance`). `__init__`→Camera 생성+`_load_level(0)`. 신규 `_load_level(index)`(LEVEL_FILES에서 맵·체크포인트·골·플레이어·카메라snap), `request_advance`/`next_level`(마지막이면 유지). `update`: 골 예약 시 `next_level` 후 return / 낙사 임계 `SCREEN_HEIGHT`→`tilemap.height` / 끝에 `camera.update`. `_check_triggers`에 goals 루프. `respawn`에 camera.snap. `draw(surface)`(offset 인자 제거, 내부 `camera.offset` 사용)에 골 렌더 추가. **A안이라 엔티티 draw 시그니처는 전부 무수정**.
+  - `main.py`: HUD에 `level=i/N cam=offset map=WxH` 줄 추가(검수 가시성). `scene.draw(screen)` 호출은 새 시그니처와 일치(무변경).
+  - 큰 맵 2개: level1(1920×720, 완만 계단+골 도달 가능, 가로/세로 스크롤), level2(1600×608, 가로 위주). 코드 생성(유효 그리드).
+- **검증(자동)**: (1) 카메라 — 초기 클램프(x≥0·y≤map-view·경계내) / 우측 추적 offset.x 증가 / 좌·우 끝 클램프 = **11/11 PASS** (2) 가로 스크롤 33구간 단조증가·끝 960클램프 (3) 레벨 전환 0→1(level2 1600 로드·새 스폰·카메라 스냅)·마지막 레벨 유지 (4) Surface draw 300f 예외0 / 실제 Game 객체 120f 예외0(HUD 렌더 포함). **player.py git diff 무변경 확인**(제약ⓐ).
+- **원본 파일 업데이트 여부**: 없음. (카메라/레벨전환은 CLAUDE.md Phase 4·구조(camera.py)에 명세. 텍스트맵 'G' 기호·LEVEL_FILES·Goal 트리거는 신규 — 문서화 필요 시 위치 명시 후 승인.)
+- **다음 작업**: 비니 직접 플레이 — `python main.py` → level1에서 우측·위로 이동 시 카메라 부드럽게 추적·맵 경계 밖 여백 안 보임·골(노란칸) 도달 시 level2 전환·새 스폰 확인. 승인 시 (선택) 데드존/룩(Spelunky) / 투사체 적(3C-5) / 비주얼.
+
+## 2026-06-01 (11)
+
+### [Phase 3] 타일맵 파일 로더 — 2섹션 텍스트([MAP]/[OBJECTS]) 외부 파일 로드
+
+- **수정/생성 파일**: assets/tilemaps/test_map.txt(신규), src/tilemap.py
+- **승인**: 구조 평가 보고서 승인(비니 "승인 + TileMap만"). 연결 방식 = **TileMap만 파일 지원 추가, scene.py는 기존 하드코딩 유지(비파괴)**. 새 디렉터리 assets/tilemaps/ + 파일 1개 생성 승인.
+- **포맷**: 2섹션 텍스트. `[MAP]` = 60칸 ASCII 그리드(# 막힘 / ^ 가시 / C 체크포인트 / P 스폰 / J 점프패드, 기존 load_text 그대로 재사용). `[OBJECTS]` = 파라미터형 객체 줄단위(픽셀좌표): platform x y w h axis dist speed / spring x y w h dir / ntt x y / ropentt 피벗x y / enemy x y / armored x y.
+- **변경 내용**:
+  - test_map.txt: 기존 하드코딩 맵(`_build_test_text` 그리드 + `_build_platforms`/`_build_objects` 객체)을 코드로 덤프해 **바이트 단위 동일** 생성(전사 오류 방지).
+  - tilemap.py: `__init__(text=None, map_file=None)` — map_file 주면 `_try_load_file`, 실패/없으면 기존 하드코딩 경로(비파괴). 신규 `_try_load_file`(try/except → OSError/ValueError 시 `_reset_collections` 후 폴백), `load_file`(섹션 분리 → load_text + _parse_objects), `_parse_objects`(주석'#'/빈줄 무시), `_spawn_object`(타입 디스패치), `_reset_collections`(부분 로드분 폐기), 모듈 `_num`(int/float/문자 변환). load_text/_build_* 전부 무변경(폴백 경로로 보존).
+  - scene.py: **무변경** — `TileMap()` 무인자 → 하드코딩 동일 동작.
+- **검증(자동)**: (1) 파일 로드 결과 == 하드코딩 9개 항목(solids/hazards/cp/pad/spawn/plat/spring/ntt/enemy) **9/9 PASS** (2) 없는 파일 → 폴백 == 하드코딩 PASS (3) 잘못된 객체 타입 → ValueError → 폴백 == 하드코딩 PASS (부분 로드분 reset 검증) (4) 파일맵 update 180f 예외0(발판 이동·진자). **버그 2건 발견·수정**: ① 폴백 print의 em-dash가 Windows cp949 콘솔 인코딩 크래시 → ASCII로 교체 ② 파싱 중 예외 시 부분 로드분이 폴백 위에 중복 누적 → `_reset_collections`로 초기화.
+- **원본 파일 업데이트 여부**: 없음. (타일맵 파일 로더는 CLAUDE.md Phase 3 명세 항목. 2섹션 텍스트 포맷은 신규 — 문서화 필요 시 위치 명시 후 승인.)
+- **다음 작업**: 비니 직접 플레이/확인 — `python main.py`는 기존과 동일(하드코딩). 파일 로더 체감하려면 scene 연결이 별도 세션 필요(이번엔 TileMap만). 승인 시 (선택) scene.py를 test_map.txt 로드로 연결 / 또는 Phase 3C-5(투사체 적) / 또는 Phase 4 카메라.
+
 ## 2026-06-01 (10)
 
 ### [전환] Unity/C# 재구성 결정 + DASH_STRIKE 제거 + 핸드오프 정리 + 유니티 코어 이식

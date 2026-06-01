@@ -9,6 +9,8 @@ from enum import Enum, auto
 import pygame
 
 import settings as S
+from src import assets
+from src import audio
 from src.entities.actor import Actor
 
 
@@ -111,6 +113,8 @@ class Player(Actor):
         self.is_ducking = False
         self.ceiling_stick = 0     # 천장 밀착 남은 프레임
         self.near_ground = False   # 바닥 근접 여부 (점프 종류 판정용)
+        self._prev_on_ground = False  # 직전 프레임 접지 여부 (착지음 엣지 감지용)
+        self._anim_t = 0              # 애니메이션 클럭 (draw마다 증가, 렌더 전용)
         self.wj_input_lock = False # 월 점프 후 '벽 쪽' 입력 무시 활성 (정점까지)
         self.ride_vx = 0.0         # 현재 탑승한 발판의 수평 속도 (관성 전달용)
         self.ride_vy = 0.0         # 현재 탑승한 발판의 수직 속도 (관성 전달용)
@@ -209,6 +213,9 @@ class Player(Actor):
             self.wall_coyote.set()
             self.last_wall_dir = self.wall_dir
         self.wall_near_dir = self._probe_wall_near(solids)  # 월바운스용 넓은 벽 감지(버퍼)
+        if self.on_ground and not self._prev_on_ground:     # 공중→지상 전이 = 착지음(1회)
+            audio.play("land")
+        self._prev_on_ground = self.on_ground
 
     def _probe_wall_near(self, solids):
         """월바운스 버퍼 — WALL_BOUNCE_RANGE 안에 벽이 있으면 그 방향(-1/+1) 반환."""
@@ -329,6 +336,7 @@ class Player(Actor):
             self.is_ducking = False
         self.vy = S.JUMP_SPEED + self.ride_vy * S.PLATFORM_INERTIA_Y   # 발판 수직 관성
         self.vx_external += self.ride_vx * S.PLATFORM_INERTIA_X        # 발판 수평 관성
+        audio.play("jump")
 
     def _do_wall_jump(self):
         """월 점프 — 벽 반대로 외적 속도를 주고 위로 튕기며 잠시 벽 재부착을 잠금."""
@@ -336,6 +344,7 @@ class Player(Actor):
         self.vx_external = -self.last_wall_dir * S.WALL_JUMP_H
         self.vx_input = 0.0
         self.wj_input_lock = True   # 정점까지 '벽 쪽' 입력 무시 → 확실히 떼짐
+        audio.play("walljump")
 
     # ── 대시 (Phase 2) ──────────────────────────────────────────
     def launch(self, vx_external=None, vy=None, refill_dash=True, lock_frames=0):
@@ -376,6 +385,7 @@ class Player(Actor):
         self.state = PlayerState.DASH
         self.dash_timer = S.DASH_TIME
         self.dashes -= 1
+        audio.play("dash")
         if self.is_ducking:               # 웅크리기 중 대시 → 히트박스 복구
             self._set_height(S.NORMAL_HITBOX_HEIGHT)
             self.is_ducking = False
@@ -442,9 +452,10 @@ class Player(Actor):
         return 1 if fallback_dx >= 0 else -1
 
     def _flash_tech(self, name):
-        """발동 테크 이름을 HUD 표시용으로 기록."""
+        """발동 테크 이름을 HUD 표시용으로 기록하고 해당 테크 효과음 재생."""
         self.last_tech = name
         self.tech_flash = S.FPS // 2      # 0.5초간 표시
+        audio.play(name.split("-")[0].lower())  # SUPER/HYPER/WALLBOUNCE(-DIAG→wallbounce)
 
     def _set_hang(self, time, grav, descend_only=False):
         """테크 체공(부유) 설정 — time 프레임 동안 중력×grav. descend_only면 하강에만 적용(높이 유지)."""
@@ -523,6 +534,7 @@ class Player(Actor):
         self.aim_slow = False                              # 잡으면 조준 슬로우 종료
         self.state = PlayerState.GRAB_ACTIVE
         self.grab_timer = S.MAX_GRAB_TIME
+        audio.play("grab")
 
     def _anchor_to(self, target, solids):
         """플레이어 중심을 대상 중심에 맞추되, 솔리드와 겹치면 위로 빼서 발을 올림(바닥 박힘 사망 방지)."""
@@ -584,6 +596,7 @@ class Player(Actor):
         target = self.grab_target
         self.grab_target = None
         self.dashes = S.MAX_DASHES                  # 릴리즈 후 대시 1회 충전
+        audio.play("release")
         rvx, rvy = getattr(target, "release_velocity", lambda: (0.0, 0.0))()  # 줄 진자 접선속도
         if down:                                    # 아래/아래+좌우 → 대시 (그 방향으로 발사)
             target.on_release(-dx, -1)              # 대상은 위로 밀쳐짐
@@ -659,11 +672,33 @@ class Player(Actor):
 
     # ── 렌더 ────────────────────────────────────────────────────
     def draw(self, surface, offset=(0, 0)):
-        """카메라 오프셋을 적용해 플레이어 히트박스를 그리고, 조준 중이면 범위/대상을 표시."""
+        """상태별 플레이어 스프라이트(있으면)로, 없으면 사각형으로 렌더. 조준 중이면 범위/대상 표시."""
         if self.state in (PlayerState.GRAB_SEEKING, PlayerState.GRAB_ACTIVE):
             self._draw_grab_aim(surface, offset)
-        r = self.rect.move(-offset[0], -offset[1])
-        pygame.draw.rect(surface, S.COLOR_PLAYER, r)
+        self._anim_t += 1
+        assets.blit_or_rect(surface, self._animated(self._sprite_names()),
+                            self.rect, S.COLOR_PLAYER, offset)
+
+    def _animated(self, bases):
+        """기본 이름 리스트의 첫 상태에 번호 프레임이 있으면 현재 프레임을 앞에 끼움 (없으면 그대로)."""
+        frames = assets.frame_names(bases[0])
+        if not frames:
+            return bases                          # 번호 프레임 없음 → 단일 스프라이트/사각형 폴백
+        idx = (self._anim_t // S.ANIM_FRAME_DUR) % len(frames)
+        return [frames[idx]] + bases              # 현재 프레임 → (없으면 단일 → 사각형)
+
+    def _sprite_names(self):
+        """현재 상태로 표시할 스프라이트 이름 후보(우선순위) 반환 — 렌더 전용(물리 무관)."""
+        if self.is_ducking:
+            return ["player_duck", "player_idle"]
+        if self.state == PlayerState.DASH:
+            return ["player_dash", "player_idle"]
+        if not self.on_ground:
+            rise = self.vy < 0
+            return (["player_jump", "player_idle"] if rise else ["player_fall", "player_idle"])
+        if abs(self.vx) > 0.3:
+            return ["player_run", "player_idle"]
+        return ["player_idle"]
 
     def _draw_grab_aim(self, surface, offset):
         """조준 범위 원 + 가장 가까운 잡기 가능 대상에 일직선/하이라이트(초록/빨강) 렌더."""

@@ -3,6 +3,8 @@
 import pygame
 
 import settings as S
+from src import assets
+from src import audio
 from src.layer import Layer
 from src.entities.trigger import Trigger
 
@@ -17,6 +19,7 @@ class Spring(Trigger):
 
     def on_enter(self, actor, scene):
         """방향에 맞춰 발사 — 위는 수직, 좌우 벽 스프링은 대각(수평+위)으로 발사하고 대시 충전."""
+        audio.play("spring")
         if self.direction == "up":
             actor.launch(vy=S.SPRING_LAUNCH_V, refill_dash=True)
         elif self.direction == "left":
@@ -27,5 +30,6 @@ class Spring(Trigger):
                          refill_dash=True, lock_frames=S.SPRING_FORCE_TIME)
 
     def draw(self, surface, offset=(0, 0)):
-        """카메라 오프셋을 적용해 스프링 색으로 렌더."""
-        pygame.draw.rect(surface, S.COLOR_SPRING, self.rect.move(-offset[0], -offset[1]))
+        """방향별 스프링 스프라이트(위/벽)로, 없으면 스프링 색 사각형으로 렌더."""
+        name = "spring_up" if self.direction == "up" else "spring_wall"
+        assets.blit_or_rect(surface, name, self.rect, S.COLOR_SPRING, offset)

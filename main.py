@@ -5,6 +5,7 @@ import sys
 import pygame
 
 import settings as S
+from src import audio
 from src.player import PlayerInput
 from src.scene import Scene
 
@@ -15,6 +16,7 @@ class Game:
     def __init__(self):
         """pygame 초기화, 창·클럭·씬·디버그 폰트 생성."""
         pygame.init()
+        audio.init()                     # 오디오 mixer 초기화 (실패해도 무음으로 진행)
         self.screen = pygame.display.set_mode((S.SCREEN_WIDTH, S.SCREEN_HEIGHT))
         pygame.display.set_caption(S.TITLE)
         self.clock = pygame.time.Clock()
@@ -77,9 +79,8 @@ class Game:
         return True
 
     def draw(self):
-        """배경·씬·디버그 HUD를 렌더하고 화면을 갱신."""
-        self.screen.fill(S.COLOR_BG)
-        self.scene.draw(self.screen)
+        """씬(배경 포함)·디버그 HUD를 렌더하고 화면을 갱신."""
+        self.scene.draw(self.screen)        # Scene이 그라데이션 배경부터 그림
         self._draw_hud()
         pygame.display.flip()
 
@@ -91,6 +92,7 @@ class Game:
             f"vx_in={p.vx_input:5.2f} vx_ext={p.vx_external:5.2f} vy={p.vy:5.2f}",
             f"duck={p.is_ducking} fast_fall={p.fast_fall} ceil_stick={p.ceiling_stick} dashes={p.dashes} dash_t={p.dash_timer}",
             f"grab={p.state.name if p.state.name.startswith('GRAB') else '-'} ok={p.grab_ok} target={'Y' if p.grab_target else 'N'} grab_t={p.grab_timer}",
+            f"level={self.scene.level_index + 1}/{len(S.LEVEL_FILES)} cam={self.scene.camera.offset} map={self.scene.tilemap.width}x{self.scene.tilemap.height}",
             "[A/D 이동] [C 점프] [X 대시] [Z 잡기(홀드조준→뗌→재입력)] [S 웅크림] [R 리셋]",
         ]
         for i, line in enumerate(lines):

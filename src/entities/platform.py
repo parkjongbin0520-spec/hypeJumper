@@ -3,6 +3,7 @@
 import pygame
 
 import settings as S
+from src import assets
 from src.entities.solid import Solid
 
 
@@ -48,5 +49,5 @@ class MovingPlatform(Solid):
             self.y = self.origin[1] + rel
 
     def draw(self, surface, offset=(0, 0)):
-        """카메라 오프셋을 적용해 발판을 발판 색으로 렌더."""
-        pygame.draw.rect(surface, S.COLOR_PLATFORM, self.rect.move(-offset[0], -offset[1]))
+        """발판 타일 스프라이트(있으면)를 폭만큼 타일링, 없으면 발판 색 사각형으로 렌더."""
+        assets.tile_fill(surface, "platform", self.rect, S.COLOR_PLATFORM, offset)

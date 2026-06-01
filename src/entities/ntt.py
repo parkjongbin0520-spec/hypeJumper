@@ -5,6 +5,7 @@ import math
 import pygame
 
 import settings as S
+from src import assets
 from src.layer import Layer
 from src.entities.actor import Actor
 
@@ -77,9 +78,9 @@ class NTT(Actor):
             self.returning = False
 
     def draw(self, surface, offset=(0, 0)):
-        """카메라 오프셋을 적용해 NTT를 사각형으로 렌더 (잡힌 동안은 밝게)."""
+        """NTT 스프라이트(있으면)로, 없으면 사각형으로 렌더 (잡힌 동안은 밝게)."""
         color = S.COLOR_GRAB_OK if self.grabbed else S.COLOR_NTT
-        pygame.draw.rect(surface, color, self.rect.move(-offset[0], -offset[1]))
+        assets.blit_or_rect(surface, "ntt", self.rect, color, offset)
 
 
 class RopeNTT(NTT):
@@ -125,4 +126,4 @@ class RopeNTT(NTT):
                          (int(px - offset[0]), int(py - offset[1])),
                          (int(cx - offset[0]), int(cy - offset[1])), 2)
         color = S.COLOR_GRAB_OK if self.grabbed else S.COLOR_ROPE_NTT
-        pygame.draw.rect(surface, color, self.rect.move(-offset[0], -offset[1]))
+        assets.blit_or_rect(surface, "rope_ntt", self.rect, color, offset)

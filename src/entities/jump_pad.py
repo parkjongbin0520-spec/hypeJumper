@@ -3,6 +3,8 @@
 import pygame
 
 import settings as S
+from src import assets
+from src import audio
 from src.layer import Layer
 from src.entities.trigger import Trigger
 
@@ -16,8 +18,9 @@ class JumpPad(Trigger):
 
     def on_enter(self, actor, scene):
         """위 방향 발사 — 수평 관성은 유지(vx_external=None)하고 대시 충전."""
+        audio.play("jumppad")
         actor.launch(vx_external=None, vy=S.JUMP_PAD_SPEED, refill_dash=True)
 
     def draw(self, surface, offset=(0, 0)):
-        """카메라 오프셋을 적용해 점프패드 색으로 렌더."""
-        pygame.draw.rect(surface, S.COLOR_JUMP_PAD, self.rect.move(-offset[0], -offset[1]))
+        """점프패드 스프라이트(있으면)로, 없으면 점프패드 색 사각형으로 렌더."""
+        assets.blit_or_rect(surface, "jumppad", self.rect, S.COLOR_JUMP_PAD, offset)

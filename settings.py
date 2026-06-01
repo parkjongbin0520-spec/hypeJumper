@@ -10,24 +10,42 @@ TILE_SIZE = 16              # 타일 한 칸 크기 (픽셀)
 RENDER_SCALE = 1            # 렌더 배율 (도트 확대용)
 TITLE = "hypeJumper"        # 창 제목
 
-# 디버그 색상  [추가] (Phase 1 하드코딩 테스트 맵 렌더용)
-COLOR_BG = (20, 20, 28)         # 배경색
-COLOR_PLAYER = (90, 200, 255)   # 플레이어
-COLOR_SOLID = (70, 70, 90)      # 바닥/벽/천장
-COLOR_PLATFORM = (200, 160, 80) # 움직이는 발판
-COLOR_HAZARD = (220, 60, 70)    # [Phase 3] 가시/위험 (닿으면 사망)
-COLOR_CHECKPOINT = (120, 220, 140)   # [Phase 3] 체크포인트(비활성)
-COLOR_CHECKPOINT_ON = (230, 240, 120)  # [Phase 3] 체크포인트(활성)
-COLOR_JUMP_PAD = (120, 130, 255)       # [Phase 3] 점프패드(위로 발사)
-COLOR_SPRING = (255, 150, 200)         # [Phase 3] 스프링(방향 발사)
-COLOR_NTT = (190, 120, 230)            # [Phase 3] 잡기 대상 NTT
-COLOR_GRAB_OK = (110, 230, 140)        # [Phase 3] 잡기 가능(장애물 없음, 초록)
-COLOR_GRAB_NO = (230, 90, 90)          # [Phase 3] 잡기 불가(장애물/범위밖, 빨강)
-COLOR_ENEMY = (230, 110, 80)           # [Phase 3] 일반 적 (HP1)
-COLOR_ENEMY_ARMORED = (200, 80, 140)   # [Phase 3] 강화 적 (HP2+)
-COLOR_ENEMY_HIT = (120, 120, 130)      # [Phase 3] 피격 무적 중(투명 느낌) 색
-COLOR_ROPE_NTT = (120, 200, 230)       # [Phase 3] 줄 NTT (진자)
-COLOR_ROPE_LINE = (90, 100, 110)       # [Phase 3] 줄 NTT 줄(피벗~NTT 선)
+# ── 팔레트  [추가] (design.md "Organic Eco-Hologram" — Bright & Peaceful Bio-Cyberpunk) ──
+#   Main 70%: 비취/민트 (생명+기술) / Sub 20%: 유백·안개그레이 (가독성) / Point 10%: 황금 (전통·아늑)
+JADE = (78, 206, 170)           # 맑은 비취색 (주색)
+JADE_DEEP = (40, 130, 120)      # 짙은 비취 (그림자/지형)
+MINT = (158, 240, 212)          # 청량 민트 녹색
+MILKY = (232, 246, 240)         # 유백색 (밝은 대비)
+MIST_GRAY = (120, 150, 152)     # 안개빛 그레이
+GOLD = (255, 208, 120)          # 따뜻한 반딧불 황금색 (포인트)
+CORAL = (236, 96, 92)           # 경고 코랄레드 (위험/긴장)
+MAGENTA = (212, 92, 150)        # 자홍 (강화 적 대비)
+VIOLET = (176, 158, 232)        # 부드러운 보라 (NTT)
+
+# 배경 — 비취빛 야간 그라데이션 (밤이지만 어둡지 않게) + 정적 반딧불
+COLOR_BG = (14, 30, 36)         # 배경 기본색 (그라데이션 폴백)
+COLOR_BG_TOP = (12, 26, 34)     # [추가] 그라데이션 상단 (깊은 비취-네이비)
+COLOR_BG_BOTTOM = (22, 48, 52)  # [추가] 그라데이션 하단 (은은한 비취 발광)
+COLOR_FIREFLY = GOLD            # [추가] 반딧불 점 색 (생체발광 포인트)
+FIREFLY_COUNT = 36              # [추가] 반딧불 개수 (정적 배치)
+
+# 렌더 색상 — 팔레트 기반 재매핑 (가독성: 플레이어/적/가시는 배경과 강한 대비)
+COLOR_PLAYER = MILKY            # 플레이어 (유백 — 최대 가독성)
+COLOR_SOLID = (58, 84, 86)      # 바닥/벽/천장 (안개+비취 틴트, 어둡게 해 캐릭터 부각)
+COLOR_PLATFORM = MINT           # 움직이는 발판 (유백 비취/민트 발광)
+COLOR_HAZARD = CORAL            # [Phase 3] 가시/위험 (경고 코랄레드)
+COLOR_CHECKPOINT = JADE_DEEP         # [Phase 3] 체크포인트(비활성, 짙은 비취)
+COLOR_CHECKPOINT_ON = GOLD             # [Phase 3] 체크포인트(활성, 황금)
+COLOR_JUMP_PAD = (110, 220, 228)       # [Phase 3] 점프패드 (밝은 청록)
+COLOR_SPRING = MAGENTA                 # [Phase 3] 스프링(방향 발사)
+COLOR_NTT = VIOLET                     # [Phase 3] 잡기 대상 NTT
+COLOR_GRAB_OK = (108, 240, 168)        # [Phase 3] 잡기 가능(장애물 없음, 민트그린)
+COLOR_GRAB_NO = CORAL                  # [Phase 3] 잡기 불가(장애물/범위밖, 코랄)
+COLOR_ENEMY = (236, 128, 92)           # [Phase 3] 일반 적 (HP1, 주황코랄)
+COLOR_ENEMY_ARMORED = MAGENTA          # [Phase 3] 강화 적 (HP2+)
+COLOR_ENEMY_HIT = MIST_GRAY            # [Phase 3] 피격 무적 중(투명 느낌) 색
+COLOR_ROPE_NTT = (118, 212, 220)       # [Phase 3] 줄 NTT (진자, 청록)
+COLOR_ROPE_LINE = (84, 110, 112)       # [Phase 3] 줄 NTT 줄(피벗~NTT 선)
 
 # ── 플레이어 히트박스 크기  [추가] (높이만 스펙에 있음, 너비 보강) ──
 PLAYER_WIDTH = 8                # 플레이어 히트박스 너비
@@ -152,3 +170,18 @@ SPRING_FORCE_TIME = 5          # [추가] 스프링 발사 후 입력 잠금 프
 JUMP_PAD_COOLDOWN = 12         # [추가] 점프패드 재발동 방지 프레임 (겹침 중첩 폭점프 방지)
 SPRING_COOLDOWN = 12           # [추가] 스프링 재발동 방지 프레임
 PLATFORM_RETURN_SPEED = 1.0    # 발판 원위치 복귀 속도 (서서히)
+
+# ══════════════════════════════════════════════
+#  Phase 4: 카메라 / 레벨  [추가] (화면보다 큰 맵 스크롤 + 레벨 전환)
+# ══════════════════════════════════════════════
+CAMERA_LERP = 0.12             # 카메라 추적 보간 계수 (0~1, 클수록 빠르게 따라붙음)
+COLOR_GOAL = GOLD              # 레벨 종료(Goal) 트리거 색 (황금 — 도착 지점)
+# 패럴럭스 배경 — 각 레이어가 카메라 오프셋의 일부만큼만 스크롤(멀수록 적게 = 깊이감)
+PARALLAX_SKY = 0.10            # bg_sky 스크롤 비율 (가장 먼 하늘, 거의 고정)
+PARALLAX_FAR = 0.30           # bg_bamboo_far (먼 대나무)
+PARALLAX_NEAR = 0.60          # bg_bamboo_near (가까운 대나무, 가장 빠름)
+ANIM_FRAME_DUR = 6             # 애니메이션 프레임당 게임프레임 수 (6=10fps 애니 @60fps)
+LEVEL_FILES = [                # 레벨 시퀀스 — 순서대로 클리어 시 다음으로 전환
+    "assets/tilemaps/level1.txt",
+    "assets/tilemaps/level2.txt",
+]

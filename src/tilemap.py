@@ -3,12 +3,24 @@
 import pygame
 
 import settings as S
+from src import assets
 from src.entities.platform import MovingPlatform
 from src.entities.hazard import Hazard
 from src.entities.jump_pad import JumpPad
 from src.entities.spring import Spring
 from src.entities.ntt import NTT, RopeNTT
 from src.entities.enemy import Enemy, ArmoredEnemy
+
+
+def _num(s):
+    """토큰을 int/float로 변환, 숫자가 아니면 문자열 그대로 (axis 'x'·dir 'up' 등)."""
+    try:
+        return int(s)
+    except ValueError:
+        try:
+            return float(s)
+        except ValueError:
+            return s
 
 
 # 텍스트 맵 기호 — 한 글자 = TILE_SIZE 칸
@@ -63,26 +75,99 @@ TEST_MAP = _build_test_text()
 class TileMap:
     """텍스트 그리드에서 로드한 정적 지오메트리/위험/체크포인트 + 코드 배치 발판."""
 
-    def __init__(self, text=None):
-        """텍스트 맵을 파싱하고 움직이는 발판을 배치."""
+    def __init__(self, text=None, map_file=None):
+        """맵을 로드: map_file 주면 파일에서, 아니면 기존 하드코딩 맵."""
         self.solids = []           # 정적 충돌용 pygame.Rect
         self.hazards = []          # Hazard 객체 (닿으면 사망)
         self.checkpoint_rects = [] # 체크포인트 위치 Rect (Scene이 객체로 만듦)
+        self.goal_rects = []       # 레벨 종료(Goal) 위치 Rect (Scene이 객체로 만듦)
         self.platforms = []        # 움직이는 발판
         self.jump_pads = []        # 점프패드 (JumpPad)
         self.springs = []          # 스프링 (Spring)
         self.ntts = []             # 잡기 대상 NTT (Phase 3C)
         self.enemies = []          # 적 Enemy/ArmoredEnemy (Phase 3C-2)
         self.spawn = (S.TILE_SIZE * 2, S.TILE_SIZE * 2)
+        self.width = S.SCREEN_WIDTH    # 맵 픽셀 너비 (load_text가 그리드 기준으로 갱신)
+        self.height = S.SCREEN_HEIGHT  # 맵 픽셀 높이 (카메라 경계 클램프용)
+        if map_file is not None and self._try_load_file(map_file):
+            return                                         # 파일 로드 성공 → 종료
         self.load_text(text if text is not None else TEST_MAP)
         self._build_platforms()
         self._build_objects()
 
+    def _try_load_file(self, path):
+        """파일에서 맵 로드 시도 — 실패 시 False 반환(하드코딩 폴백)."""
+        try:
+            with open(path, encoding="utf-8") as f:
+                self.load_file(f.read())
+            return True
+        except (OSError, ValueError) as e:
+            print(f"[TileMap] map load failed ({path}): {e} -> fallback to hardcoded map")
+            self._reset_collections()      # 부분 로드분 폐기 — 폴백이 깨끗하게 재구성
+            return False
+
+    def _reset_collections(self):
+        """파싱 중 채워진 수집 리스트/스폰을 초기 상태로 되돌림 (폴백용)."""
+        self.solids.clear()
+        self.hazards.clear()
+        self.checkpoint_rects.clear()
+        self.goal_rects.clear()
+        self.platforms.clear()
+        self.jump_pads.clear()
+        self.springs.clear()
+        self.ntts.clear()
+        self.enemies.clear()
+        self.spawn = (S.TILE_SIZE * 2, S.TILE_SIZE * 2)
+        self.width = S.SCREEN_WIDTH
+        self.height = S.SCREEN_HEIGHT
+
+    def load_file(self, text):
+        """2섹션 텍스트([MAP]/[OBJECTS])를 파싱 — 그리드는 load_text, 객체는 _parse_objects."""
+        map_lines, obj_lines, target = [], [], None
+        for line in text.splitlines():
+            head = line.strip()
+            if head == "[MAP]":
+                target = map_lines
+            elif head == "[OBJECTS]":
+                target = obj_lines
+            elif target is not None:
+                target.append(line)
+        self.load_text("\n".join(map_lines))
+        self._parse_objects(obj_lines)
+
+    def _parse_objects(self, lines):
+        """[OBJECTS] 줄들을 타입별 엔티티로 생성 (주석 '#'/빈 줄 무시)."""
+        for line in lines:
+            tok = line.split()
+            if not tok or tok[0].startswith("#"):
+                continue
+            self._spawn_object(tok[0], [_num(v) for v in tok[1:]])
+
+    def _spawn_object(self, kind, a):
+        """타입 토큰 + 숫자/문자 인자 리스트로 해당 엔티티를 리스트에 추가."""
+        if kind == "platform":     # x y w h axis dist speed
+            self.platforms.append(MovingPlatform(a[0], a[1], a[2], a[3], a[4], a[5], a[6]))
+        elif kind == "spring":     # x y w h dir
+            self.springs.append(Spring(a[0], a[1], a[2], a[3], a[4]))
+        elif kind == "ntt":
+            self.ntts.append(NTT(a[0], a[1]))
+        elif kind == "ropentt":    # 천장 피벗 좌표
+            self.ntts.append(RopeNTT(a[0], a[1]))
+        elif kind == "enemy":
+            self.enemies.append(Enemy(a[0], a[1]))
+        elif kind == "armored":
+            self.enemies.append(ArmoredEnemy(a[0], a[1]))
+        else:
+            raise ValueError(f"알 수 없는 객체 타입: {kind}")
+
     def load_text(self, text):
-        """글자 그리드를 파싱해 solids/hazards/checkpoint/spawn을 채움 (제너릭 로더)."""
+        """글자 그리드를 파싱해 solids/hazards/checkpoint/goal/spawn을 채우고 맵 크기를 계산."""
         t = S.TILE_SIZE
-        merge = []  # 같은 행 연속 '#'을 하나의 Rect로 합칠 버퍼
-        for r, line in enumerate(text.splitlines()):
+        lines = text.splitlines()
+        if lines:                                          # 맵 픽셀 크기 = 그리드 폭/높이 (카메라 클램프용)
+            self.width = max(len(line) for line in lines) * t
+            self.height = len(lines) * t
+        for r, line in enumerate(lines):
             run_start = None
             for c, ch in enumerate(line):
                 x, y = c * t, r * t
@@ -96,6 +181,8 @@ class TileMap:
                     self.hazards.append(Hazard(x, y, t, t))
                 elif ch == 'C':
                     self.checkpoint_rects.append(pygame.Rect(x, y, t, t))
+                elif ch == 'G':
+                    self.goal_rects.append(pygame.Rect(x, y, t, t))
                 elif ch == 'J':
                     self.jump_pads.append(JumpPad(x, y, t, t))
                 elif ch == 'P':
@@ -138,9 +225,9 @@ class TileMap:
         return self.solids + [p.rect for p in self.platforms]
 
     def draw(self, surface, offset=(0, 0)):
-        """카메라 오프셋을 적용해 solid·가시·발판을 렌더."""
+        """카메라 오프셋을 적용해 solid(타일)·가시·발판을 렌더."""
         for r in self.solids:
-            pygame.draw.rect(surface, S.COLOR_SOLID, r.move(-offset[0], -offset[1]))
+            assets.tile_fill(surface, "tile_ground", r, S.COLOR_SOLID, offset)
         for hz in self.hazards:
             hz.draw(surface, offset)
         for plat in self.platforms:

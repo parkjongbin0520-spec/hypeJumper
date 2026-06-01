@@ -3,6 +3,8 @@
 import pygame
 
 import settings as S
+from src import assets
+from src import audio
 from src.layer import Layer
 from src.entities.actor import Actor
 
@@ -58,9 +60,11 @@ class Enemy(Actor):
         if self.hp <= 0:
             self.destroyed = True
             self.respawn_timer = S.RESPAWN_TIME
+            audio.play("enemy_break")
         else:
             self.invincible_timer = S.INVINCIBLE_TIME
             self.push_timer = S.PUSH_RETURN_TIME
+            audio.play("enemy_hit")
 
     # ── 업데이트 ────────────────────────────────────────────────
     def update(self, solids):
@@ -117,14 +121,15 @@ class Enemy(Actor):
         return S.COLOR_ENEMY_ARMORED if self.max_hp > 1 else S.COLOR_ENEMY
 
     def draw(self, surface, offset=(0, 0)):
-        """파괴 중엔 안 그리고, 무적 중엔 깜빡임 색으로 적을 렌더."""
+        """파괴 중엔 안 그리고, 무적 중엔 깜빡임(사각형)으로, 그 외엔 적 스프라이트로 렌더."""
         if self.destroyed:
             return
         if self.invincible_timer > 0 and (self.invincible_timer // 4) % 2 == 0:
-            color = S.COLOR_ENEMY_HIT      # 무적 동안 깜빡임
-        else:
-            color = self._base_color()
-        pygame.draw.rect(surface, color, self.rect.move(-offset[0], -offset[1]))
+            # 무적 깜빡임 프레임은 스프라이트 무시(빈 names)하고 피격색 사각형으로 피드백 유지
+            assets.blit_or_rect(surface, [], self.rect, S.COLOR_ENEMY_HIT, offset)
+            return
+        name = "enemy_armored" if self.max_hp > 1 else "enemy"
+        assets.blit_or_rect(surface, name, self.rect, self._base_color(), offset)
 
 
 class ArmoredEnemy(Enemy):

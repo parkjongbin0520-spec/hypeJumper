@@ -3,6 +3,7 @@
 import pygame
 
 import settings as S
+from src import assets
 from src.layer import Layer
 from src.entities.trigger import Trigger
 
@@ -19,5 +20,5 @@ class Hazard(Trigger):
         scene.kill()
 
     def draw(self, surface, offset=(0, 0)):
-        """카메라 오프셋을 적용해 위험 색으로 렌더."""
-        pygame.draw.rect(surface, S.COLOR_HAZARD, self.rect.move(-offset[0], -offset[1]))
+        """가시 스프라이트(있으면)로, 없으면 위험 색 사각형으로 렌더."""
+        assets.blit_or_rect(surface, "spike", self.rect, S.COLOR_HAZARD, offset)
