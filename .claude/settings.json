@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "Write-Output '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"This project default skill is /caveman full (see CLAUDE.md). At session start, invoke the caveman skill with args full before other work.\"}}'",
+            "statusMessage": "Loading project default skill (caveman)"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+# ── Python ─────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# ── 생성 아티팩트 (코드로 렌더한 미리보기) ──
+map_preview*.png
+
+# ── Claude Code 로컬 설정 (머신별) ──
+.claude/settings.local.json
+
+# ── OS ─────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Unity (unity_port에 실제 프로젝트 만들 때 대비) ──
+# C# 스크립트(*.cs)·씬·에셋은 커밋, 생성물만 무시
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+*.csproj
+*.sln
+*.unityproj
+*.booproj
+.vs/
