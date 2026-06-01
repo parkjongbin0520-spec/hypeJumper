@@ -18,6 +18,7 @@ class Game:
         pygame.init()
         audio.init()                     # 오디오 mixer 초기화 (실패해도 무음으로 진행)
         self.screen = pygame.display.set_mode((S.SCREEN_WIDTH, S.SCREEN_HEIGHT))
+        self.world = pygame.Surface((S.INTERNAL_W, S.INTERNAL_H))  # 줌용 내부 저해상 렌더 타깃
         pygame.display.set_caption(S.TITLE)
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("consolas", 16)
@@ -79,9 +80,10 @@ class Game:
         return True
 
     def draw(self):
-        """씬(배경 포함)·디버그 HUD를 렌더하고 화면을 갱신."""
-        self.scene.draw(self.screen)        # Scene이 그라데이션 배경부터 그림
-        self._draw_hud()
+        """내부 저해상 surface에 씬을 그린 뒤 화면으로 CAMERA_ZOOM배 확대, HUD는 네이티브로."""
+        self.scene.draw(self.world)                 # 320×180 내부 렌더(배경 포함)
+        pygame.transform.scale(self.world, (S.SCREEN_WIDTH, S.SCREEN_HEIGHT), self.screen)
+        self._draw_hud()                            # HUD는 확대 후 네이티브 해상도에 (선명)
         pygame.display.flip()
 
     def _draw_hud(self):

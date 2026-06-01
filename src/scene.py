@@ -72,7 +72,7 @@ class Scene:
         self.player = Player(*self.respawn_point)
         self._dead = False
         self._advance_pending = False
-        self.camera.snap(self.player.rect, self.tilemap.width, self.tilemap.height)
+        self.camera.snap_to(self.player.rect, self.tilemap.width, self.tilemap.height)
         audio.play_music("stage1")          # 배경음 루프 (이미 재생 중이면 무시)
 
     def request_advance(self):
@@ -89,6 +89,9 @@ class Scene:
     # ── 업데이트 ────────────────────────────────────────────────
     def update(self, inp):
         """발판→탑승/끼임→플레이어→트리거→사망/리스폰 순으로 한 프레임 처리."""
+        if self.camera.sliding:              # 방 전환 슬라이드 중 = 게임플레이 정지, 카메라만 이동
+            self.camera.update(self.player.rect, self.tilemap.width, self.tilemap.height)
+            return
         rider = self._riding_platform()      # 발판 이동 전 탑승 판정
         self.tilemap.update()                # 발판 이동
         self._carry_and_push(rider)          # 캐리/밀기/끼임
@@ -107,7 +110,8 @@ class Scene:
             return
         if self.player.crushed or self._dead or self.player.y > self.tilemap.height + 100:
             self.respawn()
-        self.camera.update(self.player.rect, self.tilemap.width, self.tilemap.height)
+        if self.camera.update(self.player.rect, self.tilemap.width, self.tilemap.height):
+            self.player.dashes = S.MAX_DASHES   # 방 전환 시작 → 대시 1회 초기화(새 방 진입 보상)
 
     def _check_triggers(self):
         """모든 위험/체크포인트에 대해 플레이어 발동을 검사 (잡기 중엔 발사형 트리거 스킵)."""
@@ -151,7 +155,7 @@ class Scene:
         self._dead = False
         for grabbable in list(self.tilemap.ntts) + list(self.tilemap.enemies):
             grabbable.grabbed = False        # 잡은 채 사망 시 대상이 얼지 않게 해제(피격 없음)
-        self.camera.snap(self.player.rect, self.tilemap.width, self.tilemap.height)
+        self.camera.snap_to(self.player.rect, self.tilemap.width, self.tilemap.height)
 
     # ── 움직이는 발판 탑승/밀기/끼임 (main에서 이관) ────────────
     def _riding_platform(self):
