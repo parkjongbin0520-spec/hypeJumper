@@ -552,3 +552,19 @@
   - 디버그 색상 (`COLOR_*`), `PLAYER_WIDTH`
 - **원본 파일 업데이트 여부**: 없음 (settings.py는 신규 파일, PLANNING.md/CLAUDE.md 변경 안 함)
 - **다음 작업**: main.py 생성 (pygame 창/게임 루프) — 승인 후 진행
+
+---
+
+## 2026-06-01 14:30
+
+### [정리] 유니티 포팅 철회 — Python 단일 구조 복원
+
+- **수정 파일**: `My project/` 삭제, `unity_port/` 삭제, TASK.md 갱신
+- **변경 내용**:
+  - `My project/`(유니티 프로젝트 전체, 추적 60파일 + 미추적 CameraFollow.cs/SceneTemplateSettings.json) `git rm -rf` 후 디스크 삭제
+  - `unity_port/`(C# 코어 5종 + README_SETUP.md, 추적 6파일) `git rm -rf` 후 디스크 삭제
+  - TASK.md: "Pygame→Unity 재구성" 피벗 내용을 "Python+Pygame 단일 유지"로 교체, 유니티 포팅 섹션 제거, 현재 세션 작업을 정리 작업으로 기록
+- **이유**: 비니 지시 — 사용 언어를 Python만 남기고 유니티 C# 구조를 제거. 한 코드베이스만 유지해 관리 단순화.
+- **원본 파일 업데이트 여부**: PLANNING.md 변경 없음(유니티 언급 원래 없었음). CLAUDE.md 변경 없음(이미 Python/Pygame 명시). TASK.md는 세션별 재작성 파일이라 규칙 #8 대상 아님.
+- **복구 경로**: 삭제분은 git 히스토리(`ebf8d98` Unity 프로젝트 추가, `bd2d17d` Input Handling)에 보존됨.
+- **다음 작업**: 비니 확인 후 파이썬 Phase 3 미완 항목(투사체 적 등) 재개.
