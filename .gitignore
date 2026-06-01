@@ -8,6 +8,7 @@ venv/
 
 # ── 생성 아티팩트 (코드로 렌더한 미리보기) ──
 map_preview*.png
+map_overview*.png
 
 # ── Claude Code 로컬 설정 (머신별) ──
 .claude/settings.local.json

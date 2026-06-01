@@ -175,9 +175,14 @@ PLATFORM_RETURN_SPEED = 1.0    # 발판 원위치 복귀 속도 (서서히)
 #  Phase 4: 카메라 / 레벨  [추가] (화면보다 큰 맵 스크롤 + 레벨 전환)
 # ══════════════════════════════════════════════
 CAMERA_LERP = 0.12             # (구) 추적 보간 — 현재 미사용(방 고정 카메라로 대체)
-CAMERA_ZOOM = 2.5              # 화면 확대 배율 (내부 저해상 렌더 → 화면으로 N배 확대)
-INTERNAL_W = int(SCREEN_WIDTH / CAMERA_ZOOM)   # 내부 렌더(=한 방) 너비 (960/2.5=384)
-INTERNAL_H = int(SCREEN_HEIGHT / CAMERA_ZOOM)  # 내부 렌더(=한 방) 높이 (540/2.5=216)
+CAMERA_ZOOM = 2                # 화면 확대 배율 (내부 저해상 렌더 → 화면으로 약 N배 확대)
+# 방(=내부 렌더) 크기를 타일 정수배로 정의 → 방 격자선이 항상 타일 경계에 떨어짐.
+# 540/2=270은 16타일에 안 나눠떨어짐(16.875) → 세로를 17타일=272로 잡아 정렬.
+# 내부 surface(480×272)는 main에서 화면 960×540으로 scale → 가로 ×2.0 / 세로 ×1.985(0.74% 차, 무시).
+ROOM_W_TILES = 30              # 한 방 가로 타일 수 (30×16=480)
+ROOM_H_TILES = 17             # 한 방 세로 타일 수 (17×16=272, 화면 절반 270에 가장 근접한 타일 정수)
+INTERNAL_W = ROOM_W_TILES * TILE_SIZE   # 내부 렌더(=한 방) 너비 (480 = 30타일)
+INTERNAL_H = ROOM_H_TILES * TILE_SIZE   # 내부 렌더(=한 방) 높이 (272 = 17타일)
 ROOM_SLIDE_LERP = 0.18         # 방 전환 슬라이드 보간 계수 (빠른 슬라이드)
 COLOR_GOAL = GOLD              # 레벨 종료(Goal) 트리거 색 (황금 — 도착 지점)
 # 패럴럭스 배경 — 각 레이어가 카메라 오프셋의 일부만큼만 스크롤(멀수록 적게 = 깊이감)
@@ -185,7 +190,10 @@ PARALLAX_SKY = 0.10            # bg_sky 스크롤 비율 (가장 먼 하늘, 거
 PARALLAX_FAR = 0.30           # bg_bamboo_far (먼 대나무)
 PARALLAX_NEAR = 0.60          # bg_bamboo_near (가까운 대나무, 가장 빠름)
 ANIM_FRAME_DUR = 6             # 애니메이션 프레임당 게임프레임 수 (6=10fps 애니 @60fps)
-LEVEL_FILES = [                # 레벨 시퀀스 — 순서대로 클리어 시 다음으로 전환
+LEVEL_FILES = [                # 레벨 시퀀스 — 순서대로 클리어 시 다음으로 전환 (스테이지 1~5)
     "assets/tilemaps/level1.txt",
     "assets/tilemaps/level2.txt",
+    "assets/tilemaps/level3.txt",
+    "assets/tilemaps/level4.txt",
+    "assets/tilemaps/level5.txt",
 ]
