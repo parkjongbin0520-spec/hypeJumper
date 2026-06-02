@@ -4,8 +4,9 @@ import os
 
 import pygame
 
-_SND_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                        "assets", "sounds")
+from src.paths import resource_path
+
+_SND_DIR = resource_path("assets", "sounds")
 _SFX_DIR = os.path.join(_SND_DIR, "sfx")
 _BGM_DIR = os.path.join(_SND_DIR, "bgm")
 _SFX_EXT = (".wav", ".ogg", ".mp3")

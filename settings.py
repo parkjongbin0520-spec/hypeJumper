@@ -197,3 +197,21 @@ LEVEL_FILES = [                # 레벨 시퀀스 — 순서대로 클리어 시
     "assets/tilemaps/level4.txt",
     "assets/tilemaps/level5.txt",
 ]
+
+# ══════════════════════════════════════════════
+#  메뉴 / 타이틀 / 일시정지  [추가] (게임 상태 화면)
+# ══════════════════════════════════════════════
+MENU_OVERLAY_ALPHA = 170          # 일시정지 시 게임 화면 위 어둡게 덮는 반투명 알파 (0~255)
+MENU_OVERLAY_COLOR = (8, 18, 22)  # 오버레이 색 (배경 톤과 맞춘 짙은 비취-네이비)
+COLOR_MENU_TITLE = GOLD           # 타이틀/메뉴 제목 글자색 (포인트 황금)
+COLOR_MENU_TEXT = MILKY           # 메뉴 항목 기본 글자색 (유백)
+COLOR_MENU_SELECTED = JADE        # 선택된 메뉴 항목 글자색 (비취 강조)
+COLOR_MENU_HINT = MIST_GRAY       # 하단 조작 안내 글자색 (안개 그레이)
+TITLE_BIG_SIZE = 64               # 타이틀 큰 글자 폰트 크기
+MENU_ITEM_SIZE = 28               # 메뉴 항목 폰트 크기
+MENU_HINT_SIZE = 16               # 조작 안내 폰트 크기
+TITLE_TEXT = "HYPE JUMPER"        # 타이틀 화면 대문 문구
+TITLE_HINT = "아무 키나 눌러 시작"   # 타이틀 화면 시작 안내
+PAUSE_TITLE = "일시정지"           # 일시정지 메뉴 제목
+PAUSE_ITEMS = ("계속 진행", "끝내기")  # 일시정지 메뉴 항목 (위→아래 순서)
+MENU_ITEM_GAP = 44                # 메뉴 항목 간 세로 간격 (픽셀)

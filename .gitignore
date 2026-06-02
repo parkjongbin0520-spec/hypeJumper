@@ -10,6 +10,11 @@ venv/
 map_preview*.png
 map_overview*.png
 
+# ── PyInstaller 빌드 산출물 (exe는 GitHub Release로 배포, 저장소엔 미포함) ──
+dist/
+build/
+*_preview.png
+
 # ── Claude Code 로컬 설정 (머신별) ──
 .claude/settings.local.json
 

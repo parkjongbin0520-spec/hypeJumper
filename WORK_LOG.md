@@ -4,6 +4,82 @@
 
 ---
 
+## 2026-06-02 (26)
+
+### [Phase 4/메뉴] 타이틀 화면 + ESC 일시정지 메뉴(계속 진행/끝내기) 추가
+
+- **수정 파일**: `main.py`(상태머신·메뉴), `settings.py`(메뉴 상수), exe 재빌드
+- **구조 평가 보고서 승인**: main.py 내장 방식(새 파일 X) / 타이틀 아무 키나 시작 / 메뉴 위아래+Enter — 비니 승인 후 진행
+- **GameState enum 추가**(main.py): `TITLE`/`PLAYING`/`PAUSED`. 진입 시 TITLE 시작
+  - 타이틀: ESC=종료, 그 외 아무 키=PLAYING. `_draw_title`로 "HYPE JUMPER"(황금)+"아무 키나 눌러 시작" 중앙정렬
+  - 플레이: ESC→`_enter_pause`(PAUSED 진입, 엣지 플래그 정리)
+  - 일시정지: ↑/↓(W/S)로 항목 이동, Enter/C 확정, ESC 즉시 재개. 0=계속 진행(resume), 1=끝내기(종료)
+  - `update`는 PLAYING일 때만 `scene.update` 호출(타이틀/정지 시 씬 동결). `draw`는 상태별 분기, PAUSED는 동결 화면 위 반투명 오버레이+메뉴
+- **버그 예방**: 일시정지 진입·재개 시 `_clear_edges()`로 점프/대시/잡기 엣지 플래그 리셋 → 버퍼된 입력이 재개 직후 오발동하지 않게
+- **상수**(settings.py 끝 "메뉴/타이틀/일시정지" 섹션 추가): 오버레이 알파/색, 메뉴 글자색 4종, 폰트 크기 3종, 문구(TITLE_TEXT/TITLE_HINT/PAUSE_TITLE/PAUSE_ITEMS), 항목 간격. 한글 폰트는 `malgungothic`(consolas는 한글 미지원)
+- **검증**: 헤드리스 상태전이 테스트 전부 통과(타이틀→플레이→ESC→일시정지→↑↓이동→Enter재개/끝내기) / 타이틀·일시정지 미리보기 png 육안 확인(한글·강조 정상) / 재빌드 exe(12:26) 4초 생존 런치 OK
+- **원본 파일 업데이트 여부**: PLANNING.md/CLAUDE.md 변경 없음(Phase 4 폴리싱 범위 내, 신규 로직은 WORK_LOG에만 기록). settings.py는 상수 모음 파일이라 규칙 8 대상 아님(끝에 신규 섹션 추가만)
+- **다음 작업**: 비니 직접 플레이로 타이틀/일시정지 UX 최종 확인
+
+### [배포] 애니 프레임 추가 반영 위해 exe 재재빌드 (낡은 빌드 갱신)
+
+- **수정 파일**: 없음(코드 변경 없음) — exe 재빌드만
+- **문제 분석**: 직전 exe 빌드(11:14) 이후 player 애니 프레임 png 22개가 디스크에 추가됨(`player_idle_0~3`, `player_run_0~5`, `player_jump_0~3`, `player_dash_0~3`, `player_duck/fall/grab/wallslide` 등, 11:17~11:21). → 옛 exe엔 미포함. **버그 아님, 낡은 빌드**
+- **사전 검증**: 전체 `.py` 구문 OK / 헤드리스(`SDL_VIDEODRIVER=dummy`)로 `frame_names` 호출해 idle4·run6·jump4·dash4 프레임 자동 탐색 정상 확인 / `_MEIPASS` 경로(`paths.resource_path`) 정상
+- **조치**: `python -m PyInstaller --clean --noconfirm hypejumper.spec` 재빌드 (exit 0)
+- **검증**: 새 exe 11:59 / 20.7MB / 실행 후 4초 생존(즉시종료·크래시 없음) = 런치 OK
+- **다음 작업**: 비니 직접 플레이로 신규 스프라이트·좌우반전 최종 확인
+
+### [버그/배포] 플레이어 방향(facing) 좌우반전 + exe 낡은 빌드 재빌드
+
+- **수정 파일**: `src/player.py`, `src/assets.py` (방향), exe 재빌드
+- **방향(facing) 기능**:
+  - `player.py` init에 `self.facing`(±1) 추가, `_update_horizontal`에서 좌우 입력 시 갱신(무입력 시 마지막 유지)
+  - `assets.blit_or_rect(..., flip)` 인자 추가 → `pygame.transform.flip`으로 좌향 시 가로반전
+  - `player.draw`에서 `flip=(facing<0)` 전달. 스프라이트 기본=우향 가정
+- **exe 가시/단일 스프라이트 미적용 원인**: **버그 아님 — 낡은 빌드**. 첫 exe 빌드(10:43) 후 `spike.png`(11:02)·`player_fall/duck/grab/wallslide.png`(10:46~)가 디스크에 추가됨 → 옛 exe는 빌드 시점 에셋만 품음. `_MEIPASS` 경로 정상
+- **조치**: `pyinstaller hypejumper.spec --noconfirm` 재빌드 → TOC 검증으로 spike.png 외 4개 png 번들 확인(총 png 26개). 새 빌드엔 facing 반전도 포함
+- **검증**: 번들 TOC에 누락분 전부 OK / exe 실행 스크린샷에 player 스프라이트·bg·타일 정상 렌더
+- **원본 파일 업데이트 여부**: 없음
+- **교훈**: 에셋/코드 변경 후엔 반드시 재빌드해야 exe에 반영됨
+- **다음 작업**: 스케일 리밸런스(방 24×13타일) — 엔진 상수 변경 + 맵 재설계 (진행 보류 중)
+
+---
+
+## 2026-06-02 (25)
+
+### [배포] PyInstaller onefile exe 빌드 — 파이썬 명령 없이 실행 가능
+
+- **신규 파일**: `src/paths.py`(리소스 경로 헬퍼), `hypejumper.spec`(빌드 설정), `requirements.txt`
+- **수정 파일**: `src/assets.py`, `src/audio.py`, `src/tilemap.py` — 경로를 `paths.resource_path()`로 교체
+- **변경 내용**:
+  - `paths.resource_path()` — PyInstaller 번들 시 `sys._MEIPASS`(임시 추출 폴더), 개발 실행 시 프로젝트 루트를 반환해 양쪽 공통 경로 해석
+  - assets/audio는 `__file__` 기반 → `resource_path("assets",...)`로 교체
+  - tilemap은 `open(path)` → `open(resource_path(path))`로 교체 (LEVEL_FILES 상대경로가 exe에서도 풀리도록)
+  - `hypejumper.spec`: onefile, `datas=[('assets','assets')]`로 스프라이트/사운드/타일맵 전부 번들, console=False
+- **이유**: 비니가 파이썬 명령 대신 더블클릭 실행 환경 요청. onefile 선택(배포 간편). 기존 `__file__` 경로는 번들에서 임시폴더를 못 가리켜 깨지므로 `_MEIPASS` 분기 필요
+- **빌드 결과**: `dist/HypeJumper.exe` (20MB, asset 40개 번들). 6초 스모크 테스트 생존 — 맵/에셋 로드 정상
+- **빌드 명령**: `pip install -r requirements.txt pyinstaller` → `pyinstaller hypejumper.spec --noconfirm`
+- **원본 파일 업데이트 여부**: 없음 (PLANNING.md/CLAUDE.md 변경 없음)
+- **다음 작업**: 비니 직접 더블클릭 실행 검증 → 필요 시 아이콘(.ico) 추가
+
+---
+
+## 2026-06-02 (24)
+
+### [Phase 4] 빈 스텁 채우기 — level2 = 대시 스테이지(가로 3방, mapexample 기반)
+
+- **수정 파일**: assets/tilemaps/level2.txt (빈 스텁 → 가로 3방 대시 스테이지)
+- **방향(비니)**: 빈 스텁 채우기 / L2=대시 / **옆으로 방 이동(가로 다중방)** / R1은 `mapexample.png` 그대로 옮김 / 파란 마커=잡기 NTT.
+- **설계**: 1440×272 = **가로 3방×세로 1방**(각 480×272=30×17타일). 우측으로 방 전환하며 진행.
+  - **R1(0~29) = mapexample 재현**: 좌측 계단(스폰서 상승) → 중앙 기둥+천장 덮개 → 중우 발판(위 가시, 점프/대시로 넘김) → 우측 출구. 상단 중앙·하단 가시. 우상단 공중에 **잡기 NTT**(파란 마커 위치, 대시충전·이동 포인트).
+  - **R2(30~59) = 대시 심화**: 대시갭 2곳(바닥 void), 중앙 기둥, 천장 가시, 공중 발판(대각 대시 착지).
+  - **R3(60~89) = 마지막+골**: 진입갭·바닥 가시 구간·골 앞 큰 갭(대시) → 우측 골 단 위 골.
+  - 갭=바닥 양행 제거(void)→낙사. 착지·방진입마다 대시 충전이라 연속 대시 가능.
+- **검증(자동)**: 로드 1440×272=**3×1방** / 스폰 tile(2,12) 접지True / 골 tile(86,10) / NTT 1·가시 32·solid 78. 오버뷰 `map_overview_level2.png`로 mapexample 대조 + 방 밀도 일관 육안 확인.
+- **원본 파일 업데이트 여부**: 없음. (맵 콘텐츠. level2 스텁을 가로 3방 대시 스테이지로 채움.)
+- **다음 작업**: 비니 플레이 — R1 mapexample 닮음·방 전환(우 이동)·대시갭/NTT·골 도달 난이도 확인. OK면 같은 방식으로 L3(벽 테크)·L4(오브젝트)·L5(종합). (커밋은 플레이 승인 후.)
+
 ## 2026-06-02 (23)
 
 ### [Phase 4][정렬수정] 방(내부 렌더) 높이 270→272(17타일) — 방 격자선 타일 정렬

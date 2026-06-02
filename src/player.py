@@ -108,6 +108,7 @@ class Player(Actor):
         self.on_wall = False
         self.wall_dir = 0          # 현재 접촉 벽 방향 (-1 좌, +1 우)
         self.last_wall_dir = 0     # 마지막 접촉 벽 (월 코요테용)
+        self.facing = 1            # 바라보는 방향 (-1 좌, +1 우) — 스프라이트 좌우반전용
         self.wall_sliding = False
         self.fast_fall = False
         self.is_ducking = False
@@ -235,6 +236,8 @@ class Player(Actor):
             self.vx_input = 0.0
             return
         direction = (1 if inp.right else 0) - (1 if inp.left else 0)
+        if direction != 0:
+            self.facing = direction        # 실제 좌우 입력이 있을 때만 바라보는 방향 갱신
         if self.on_ground:
             accel, decel = S.GROUND_ACCEL, S.GROUND_DECEL
             self.vx_external = approach(self.vx_external, 0, S.SPEED_REDUCE)  # 빠른 감속
@@ -677,7 +680,7 @@ class Player(Actor):
             self._draw_grab_aim(surface, offset)
         self._anim_t += 1
         assets.blit_or_rect(surface, self._animated(self._sprite_names()),
-                            self.rect, S.COLOR_PLAYER, offset)
+                            self.rect, S.COLOR_PLAYER, offset, flip=(self.facing < 0))
 
     def _animated(self, bases):
         """기본 이름 리스트의 첫 상태에 번호 프레임이 있으면 현재 프레임을 앞에 끼움 (없으면 그대로)."""

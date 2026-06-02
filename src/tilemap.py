@@ -4,6 +4,7 @@ import pygame
 
 import settings as S
 from src import assets
+from src.paths import resource_path
 from src.entities.platform import MovingPlatform
 from src.entities.hazard import Hazard
 from src.entities.jump_pad import JumpPad
@@ -98,7 +99,7 @@ class TileMap:
     def _try_load_file(self, path):
         """파일에서 맵 로드 시도 — 실패 시 False 반환(하드코딩 폴백)."""
         try:
-            with open(path, encoding="utf-8") as f:
+            with open(resource_path(path), encoding="utf-8") as f:
                 self.load_file(f.read())
             return True
         except (OSError, ValueError) as e:

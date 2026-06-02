@@ -4,9 +4,10 @@ import os
 
 import pygame
 
-# assets/sprites/ 경로 (이 파일=src/assets.py → 상위의 상위가 프로젝트 루트)
-_SPRITE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                          "assets", "sprites")
+from src.paths import resource_path
+
+# assets/sprites/ 경로 (개발/번들 공통 — paths.resource_path가 루트 해석)
+_SPRITE_DIR = resource_path("assets", "sprites")
 _SUBDIRS = ("player", "entities", "tiles", "bg", "ui")  # 이름으로 검색할 하위 폴더
 _cache = {}        # name -> Surface | None (미존재도 캐시해 매프레임 디스크 재시도 방지)
 _frames_cache = {} # base -> ["base_0","base_1",...] (애니 프레임 목록 캐시)
@@ -55,12 +56,14 @@ def first_sprite(names):
     return None
 
 
-def blit_or_rect(surface, names, rect, color, offset=(0, 0)):
-    """스프라이트가 있으면 히트박스 발-중앙에 맞춰 blit, 없으면 사각형 폴백."""
+def blit_or_rect(surface, names, rect, color, offset=(0, 0), flip=False):
+    """스프라이트가 있으면 히트박스 발-중앙에 맞춰 blit(flip=좌우반전), 없으면 사각형 폴백."""
     spr = first_sprite(names)
     if spr is None:
         pygame.draw.rect(surface, color, rect.move(-offset[0], -offset[1]))
         return
+    if flip:
+        spr = pygame.transform.flip(spr, True, False)   # 좌향 시 가로 반전
     sx = rect.centerx - spr.get_width() // 2    # 가로 중앙 정렬
     sy = rect.bottom - spr.get_height()         # 발(아래)을 히트박스 바닥에 맞춤
     surface.blit(spr, (sx - offset[0], sy - offset[1]))
