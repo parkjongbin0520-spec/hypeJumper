@@ -6,6 +6,17 @@
 
 ## 2026-06-02 (26)
 
+### [배포] git push + GitHub Release v0.1.0 (exe 첨부) 첫 배포
+
+- **수정 파일**: `.gitignore`(dist/·build/ 무시 추가), 소스 커밋, GitHub Release 생성
+- **커밋**: `56b6b9b` feat(menu) — 타이틀/일시정지 메뉴, 플레이어 스프라이트(애니 프레임+duck/fall/grab/wallslide+spike), facing 반전, paths.py, hypejumper.spec/requirements.txt. `origin/main` push 완료
+- **배포 방식**: 비니 선택 — **GitHub Release 첨부**(저장소에 20MB exe 직접 커밋 안 함). `.gitignore`에 `dist/ build/ *_preview.png` 추가해 빌드 산출물 추적 제외
+- **Release**: `v0.1.0` 태그 생성, `HypeJumper.exe`(20.7MB) 첨부. URL: https://github.com/parkjongbin0520-spec/hypeJumper/releases/tag/v0.1.0
+  - 릴리스 노트에 실행법(SmartScreen 우회)·조작키·이번 빌드 내용 한글 기재
+- **mapexample.png**: 용도 불명 dev 참고 이미지라 커밋 제외(미추적 유지)
+- **공유 방법**: 위 Release 페이지 링크 전달 → 받는 사람이 HypeJumper.exe 다운로드. exe 갱신 시 재빌드 후 `gh release upload v0.1.0 dist/HypeJumper.exe --clobber` 또는 새 태그
+- **다음 작업**: 비니 확인 — 새 exe 받아 타이틀/일시정지 동작 최종 점검
+
 ### [Phase 4/메뉴] 타이틀 화면 + ESC 일시정지 메뉴(계속 진행/끝내기) 추가
 
 - **수정 파일**: `main.py`(상태머신·메뉴), `settings.py`(메뉴 상수), exe 재빌드
