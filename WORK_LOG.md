@@ -4,6 +4,74 @@
 
 ---
 
+## 2026-06-07 (29)
+
+### [C# 포팅 P3] 검증 + self-contained exe 배포
+
+- **수정 파일**: 없음(빌드/배포만). 산출물 `dist/HypeJumper-csharp-win-x64.zip` (40.8MB, gitignore)
+- **검증**: `dotnet test` 21/21 통과 (RectI 14 + 파서티 7)
+- **배포**: `dotnet publish -c Release -r win-x64 --self-contained` → 폴더 배포(87MB, .NET 런타임 포함). exe 8초 런치 생존. 네이티브 SDL2/openal/NVorbis 동봉(렌더+오디오 정상), assets(png26/sound8/txt6) 포함. 배포용 zip 40.8MB.
+- **단일파일(PublishSingleFile) 불가**: 런타임 `Failed to load library: SDL2.dll` → MonoGame은 단일파일 시 네이티브 로드 실패. **폴더 배포가 MonoGame 표준** → 폴더/zip 방식 채택(v0.1.0 PyInstaller 단일exe와 다름).
+- **원본 파일 업데이트 여부**: 없음
+- **다음 작업**: (선택) GitHub Release 첨부 / 오디오·BGM 실기 확인 / 잔여 폴리싱
+
+### QA 보고서 — C# 포팅 P3 (배포)
+
+- **테스트 항목**: 자동테스트 + Release 빌드 + publish exe 런치
+- **통과**: 테스트 21/21 · 빌드 0/0 · exe 8초 생존 ✅
+- **발견 버그**: 없음 (단일파일 한계는 폴더배포로 해결)
+- **보완 완료**: ✅
+- **최종 검수 요청**: 비니 — `dist/HypeJumper-csharp-win-x64.zip` 풀어서 `HypeJumper.exe` 실행, 플레이 체감 확인.
+
+---
+
+## 2026-06-07 (28)
+
+### [C# 포팅 P2] MonoGame 플랫폼층 — 렌더/입력/오디오/폰트 + 실행 가능
+
+- **수정 파일**: `csharp/HypeJumper/` — `Game1.cs`(루프/GameState/입력 엣지누적/조준 슬로우/RT 확대), `Platform/`{`Palette`·`InputReader`·`Assets`·`Audio`·`Fonts`·`Renderer`}; `HypeJumper.csproj`에 FontStashSharp.MonoGame 1.5.6 + `Nullable enable`; Core `IGrabbable`에 `Rect` 추가(조준 표시용, Entity가 제공)
+- **변경 내용**: `main.py` + 전 `draw()` / `assets.py` / `audio.py`를 MonoGame로 이식. 480×272 RenderTarget → 960×540 PointClamp 확대. 입력 엣지 누적(슬로우 스킵 프레임 보존). `Core.Sound` 훅을 `Audio`에 연결. 폰트는 시스템 TTF(맑은고딕/Consolas) 런타임 로드(파이썬 SysFont 방식 미러). 색상=`Palette`(Core는 무색).
+- **이유**: Core(로직)와 분리된 어댑터층 — 렌더/입력/오디오만 엔진 API로 교체, **물리는 무수정**.
+- **원본 파일 업데이트 여부**: 없음
+- **다음 작업**: 비니 직접 플레이 검수 → P3 self-contained exe 배포
+
+### QA 보고서 — C# 포팅 P2 (플랫폼층)
+
+- **테스트 항목**: 솔루션 빌드 + 자동 테스트 회귀 + 런치 생존
+- **통과**: 빌드 0/0 · 테스트 21/21(파서티 회귀 없음) · **실제 머신 exe 8초 생존**(창 정상 생성·크래시 없음·stderr 없음)
+- **발견 버그**: 없음 (BGM은 ogg 런타임 로드 불안정 → 무음 폴백 가능; SFX/스프라이트/폰트는 정상)
+- **보완 완료**: ✅
+- **최종 검수 요청**: 비니 — `dotnet run --project csharp/HypeJumper` 으로 직접 플레이(타이틀→이동/점프/대시/잡기/카메라/레벨전환). 손맛은 파서티로 증명됨, 이번엔 화면·조작 체감 확인.
+
+---
+
+## 2026-06-07 (27)
+
+### [C# 포팅 P0~P1] Python/Pygame → C#/MonoGame 코어 이식 + 파서티 검증 (손맛 프레임 일치)
+
+- **수정 파일**: 신규 `csharp/` 트리만 생성 — **파이썬 원본 무수정·존치**(파서티 기준+롤백 안전망)
+  - 솔루션 3프로젝트(전부 net10.0): `HypeJumper.Core`(로직, **MonoGame 무참조**) / `HypeJumper`(mgdesktopgl 게임) / `HypeJumper.Tests`(xUnit)
+  - Core: `RectI`(pygame.Rect 미러: 반열림 충돌·collidelist·clipline·세터), `Settings`, `Entity/Actor/Solid/Trigger`, `InputBuffer`, `PlayerState`, `Layer`, `Camera`, `MoveMath`, `IGrabbable`, `Sound`(오디오 facade), `Paths`, `TileMap`, `Player`(655줄), `Scene`, Entities(`MovingPlatform/Enemy/NTT/RopeNTT/JumpPad/Spring/Hazard`)
+  - Game: `Game1` 480×272 렌더타깃 → 960×540 PointClamp 확대 골격 + `assets/` 출력 복사
+  - Tests: `RectITests`(14) + `ParityTests`(7시나리오)
+  - 신규 `tools/parity_dump.py`: 기존 Player를 스크립트 입력열로 구동해 프레임별 상태 JSON 정답지 생성
+- **변경 내용**: 물리/상태머신/엔티티/씬을 순수 C#로 1:1 이식. 렌더/입력/오디오/`draw`·`_anim_t`는 P2(플랫폼층)로 분리. 물리값 `double`, `//`·`%` 음수는 floor/양수모듈로 보정, `colliderect` 반열림 동일.
+- **이유**: 손맛 보존 1순위 → 로직을 프레임워크 무관으로 떼어 파이썬과 수치 대조 가능하게.
+- **net 타겟**: 설치 SDK가 10.0.204뿐 → 3프로젝트 net10.0 통일(템플릿 net8/9에서 변경). MonoGame net8 어셈블리는 net10에서 소비 가능.
+- **원본 파일 업데이트 여부**: 없음 (PLANNING.md/CLAUDE.md 무변경)
+- **다음 작업**: P2 MonoGame 플랫폼층 (Game1 루프/입력 엣지/Assets/Renderer/Audio/FontStashSharp 한글) — **승인 대기**
+
+### QA 보고서 — C# 포팅 P1 (로직 + 파서티)
+
+- **테스트 항목**: 21 (RectI 단위 14 + 파서티 7시나리오 / 총 333프레임)
+- **통과**: 21 · **실패**: 0
+- **파서티 커버리지**: idle / walk / jump(홀드·릴리즈) / dash 콤보 / 천장박치기 / 낙하+패스트폴 / 월점프 — 각 프레임 `x·y·vx_input·vx_external·vy`(오차 1e-9) + `state`·접지/벽/웅크림·대시충전·대시타이머·천장밀착·체공 전부 일치
+- **발견 버그**: 없음 (1:1 이식이 첫 시도 통과)
+- **보완 완료**: ✅
+- **최종 검수 요청**: 헤드리스 파서티로 손맛 수치 증명 완료. 실제 플레이 검수는 P2(렌더/입력/오디오) 완료 후 가능.
+
+---
+
 ## 2026-06-02 (26)
 
 ### [배포] git push + GitHub Release v0.1.0 (exe 첨부) 첫 배포
