@@ -1,0 +1,10 @@
+# .NET 빌드 산출물
+bin/
+obj/
+
+# 런타임 에셋은 루트 assets/ 복사본 — 저장소 중복 커밋 방지 (로컬 빌드 복사본만 존재)
+HypeJumper/assets/
+
+# 프로젝트/솔루션 파일은 추적 (루트 .gitignore의 Unity용 *.csproj/*.sln 무시 규칙 무효화)
+!*.sln
+!*.csproj
