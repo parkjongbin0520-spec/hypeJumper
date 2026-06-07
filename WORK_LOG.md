@@ -4,6 +4,19 @@
 
 ---
 
+## 2026-06-07 (30)
+
+### [배포] GitHub Release v0.2.0 — C#/MonoGame 빌드 (zip 첨부)
+
+- **수정 파일**: 없음(릴리즈 발행만)
+- **릴리즈**: `v0.2.0` "HypeJumper v0.2.0 — C# / MonoGame", 타깃 커밋 `c0ce3d1`(PR #1 브랜치 tip), `HypeJumper-csharp-win-x64.zip`(40MB) 첨부, **Latest**
+  - URL: https://github.com/parkjongbin0520-spec/hypeJumper/releases/tag/v0.2.0
+- **실행**: zip 풀고 폴더째 `HypeJumper.exe` (.NET 불필요, self-contained). 단일 exe 아님(MonoGame는 폴더 배포 표준).
+- **주의**: PR #1 미머지 상태 — 태그는 브랜치 커밋 기준. 머지 후 필요 시 재태그 가능. v0.1.0(파이썬)은 그대로 보존.
+- **다음 작업**: 비니 다운로드 실행 확인
+
+---
+
 ## 2026-06-07 (29)
 
 ### [C# 포팅 P3] 검증 + self-contained exe 배포
